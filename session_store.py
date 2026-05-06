@@ -11,8 +11,13 @@ def _load() -> dict:
         return json.load(f)
 
 def _save(data: dict) -> None:
-    with open(SESSIONS_FILE, "w", encoding="utf-8") as f:
+    # 原子写：先写到 tmp，再 os.replace，避免写入中途被杀导致文件损坏
+    tmp_path = SESSIONS_FILE + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_path, SESSIONS_FILE)
 
 def new_session(name: str, project: str, session_id: str) -> None:
     data = _load()
@@ -82,3 +87,46 @@ def set_mode(mode: str) -> None:
     data = _load()
     data["mode"] = mode
     _save(data)
+
+
+# ── 后台任务运行状态 ──────────────────────────────────────────
+
+def set_running(name: str, task_info: dict) -> None:
+    """标记会话正在运行任务。task_info 至少包含 task_id/started_at/chat_id/message_id/prompt。"""
+    data = _load()
+    if name in data["sessions"]:
+        data["sessions"][name]["running"] = task_info
+        _save(data)
+
+def clear_running(name: str) -> None:
+    data = _load()
+    if name in data["sessions"] and "running" in data["sessions"][name]:
+        data["sessions"][name].pop("running", None)
+        _save(data)
+
+def get_running(name: str) -> dict | None:
+    data = _load()
+    sess = data["sessions"].get(name)
+    if not sess:
+        return None
+    return sess.get("running")
+
+def list_running() -> list[tuple[str, dict]]:
+    """返回所有有 running 字段的会话 [(name, running_info), ...]"""
+    data = _load()
+    result = []
+    for name, info in data["sessions"].items():
+        if info.get("running"):
+            result.append((name, info["running"]))
+    return result
+
+def clear_all_running() -> list[str]:
+    """清除所有会话的 running 字段，返回被清的会话名列表（bot 启动时调用）。"""
+    data = _load()
+    cleared = []
+    for name, info in data["sessions"].items():
+        if info.pop("running", None):
+            cleared.append(name)
+    if cleared:
+        _save(data)
+    return cleared

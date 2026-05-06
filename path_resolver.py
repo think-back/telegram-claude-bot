@@ -1,19 +1,28 @@
 import os
+import time
 from config import WORKSPACE_ROOT
 
-# shulex 下的直接子目录集合（运行时扫描一次）
-_SHULEX_PROJECTS: set[str] = set()
+# shulex 下的直接子目录集合，TTL 60s
+_SHULEX_CACHE: dict[str, object] = {"ts": 0.0, "value": set()}
+_CACHE_TTL = 60.0
 
 def _get_shulex_projects() -> set[str]:
-    global _SHULEX_PROJECTS
-    if not _SHULEX_PROJECTS:
-        shulex_dir = os.path.join(WORKSPACE_ROOT, "shulex")
-        if os.path.isdir(shulex_dir):
-            _SHULEX_PROJECTS = {
+    now = time.time()
+    if now - _SHULEX_CACHE["ts"] < _CACHE_TTL and _SHULEX_CACHE["value"]:
+        return _SHULEX_CACHE["value"]  # type: ignore[return-value]
+    shulex_dir = os.path.join(WORKSPACE_ROOT, "shulex")
+    value: set[str] = set()
+    if os.path.isdir(shulex_dir):
+        try:
+            value = {
                 d for d in os.listdir(shulex_dir)
                 if os.path.isdir(os.path.join(shulex_dir, d))
             }
-    return _SHULEX_PROJECTS
+        except OSError:
+            pass
+    _SHULEX_CACHE["ts"] = now
+    _SHULEX_CACHE["value"] = value
+    return value
 
 def resolve(project_input: str) -> str:
     """
