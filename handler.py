@@ -1,3 +1,5 @@
+import time
+
 from telegram import Update
 from telegram.ext import ContextTypes
 from config import ALLOWED_USER_ID
@@ -34,7 +36,6 @@ async def _reject_if_running(update: Update, name: str) -> bool:
     """若当前会话有任务在跑，发提示并返回 True。"""
     if not task_manager.is_running(name):
         return False
-    import time
     info = session_store.get_running(name) or {}
     started = info.get("started_at", time.time())
     elapsed = time.time() - float(started)
@@ -163,7 +164,6 @@ def _truncate(s: str, n: int) -> str:
 
 async def cmd_tasks(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     if not _auth(update): return
-    import time
     current, sessions = session_store.list_sessions()
     if not sessions:
         await _send(update, "没有会话")

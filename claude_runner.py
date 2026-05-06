@@ -5,6 +5,9 @@ import os
 from typing import AsyncIterator, Callable, Optional
 from config import GIT_BASH_PATH
 
+# claude 的 stream-json 单行（尤其 result 事件）可能超过 asyncio 默认 64KB 行缓冲
+_STREAM_LIMIT = 10 * 1024 * 1024
+
 
 def _build_cmd_env(prompt: str, session_id: str | None) -> tuple[list[str], dict]:
     """构造 claude CLI 命令行和环境变量。Windows 下用 claude.cmd。"""
@@ -55,6 +58,7 @@ async def run_async(
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             env=env,
+            limit=_STREAM_LIMIT,
         )
     else:
         proc = await asyncio.create_subprocess_exec(
@@ -63,6 +67,7 @@ async def run_async(
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             env=env,
+            limit=_STREAM_LIMIT,
         )
 
     if on_proc_started is not None:
