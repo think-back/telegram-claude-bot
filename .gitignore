@@ -1,4 +1,6 @@
 .env
 sessions.json
+bot.log
+bot.log.*
 __pycache__/
 *.pyc
