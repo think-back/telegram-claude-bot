@@ -200,7 +200,7 @@ async def _run_task(
     # 组装最终消息
     elapsed = time.time() - state.started_at
     try:
-        diff = git_helper.get_diff_summary(project_path)
+        diff = await git_helper.get_diff_summary(project_path)
     except Exception:
         diff = ""
 
