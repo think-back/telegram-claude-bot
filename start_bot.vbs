@@ -1,2 +1,3 @@
 Set WshShell = CreateObject("WScript.Shell")
-WshShell.Run "pythonw E:\workspace\telegram-claude-bot\bot.py", 0, False
+WshShell.CurrentDirectory = "E:\workspace\telegram-claude-bot"
+WshShell.Run "pythonw bot.py", 0, False
